@@ -3,15 +3,18 @@ import random
 import time
 import os
 import requests
-from selenium.common.exceptions import NoSuchElementException
 from selenium import webdriver
+from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 path_to_webdriver = "driver/chromedriver_mac64"
 os.chmod(path_to_webdriver, 0755)
 
 login_url = "https://www.walgreens.com/login.jsp"
 screening_url = "https://www.walgreens.com/findcare/vaccination/covid-19/appointment/screening"
+timeslot_url = "https://www.walgreens.com/hcschedulersvc/svc/v2/immunizationLocations/timeslots"
 
 data = None
 with open("zips_by_town.json", "r") as f:
@@ -64,154 +67,71 @@ def patient_screening(driver):
 
 
 def search(driver):
-    towns_near_chicago = [
-        "CHICAGO",
-        "EVANSTONS",
-        "SKOKIE",
-        "NILES",
-        "MORTON GROVE",
-        "DES PLAINES",
-        "SCHAUMBURG",
-        "OAK LAWN",
-        "OAK PARK",
-        "CICERO"
-    ]
-    zips = data.get("zips")
-    lookup_zips = []
-    for k, v in zips.items():
-        if k in towns_near_chicago:
-            for zipcode in v:
-                query = "{}, IL {}, USA".format(k.capitalize(), zipcode)
-                lookup_zips.append(query)
-    random.shuffle(lookup_zips)
-    random.shuffle(lookup_zips)
-
-    # There are about 120 zipcodes in lookup_zips in and around Chicago.
-    # Search one zip code per 15 seconds (15*120 = 1800 seconds = 30 minutes)
-    thread_wait = 15
-    # request_cookies_browser = driver.get_cookies()
-    # session = requests.Session()
-
-
-
-    # time.sleep(thread_wait)
+    max_result_count = 10
     loading_msg = "Checking available appointments"
-    params = {
-        "position": {
-            "latitude": 42.0105286,
-            "longitude": -87.6926257
-        },
-        "vaccine": {
-            "productId": ""
-        },
-        "appointmentAvailability": {
-            "startDateTime": "2021-02-05"
-        },
-        "radius": 100,
-        "size": 25,
-        "serviceId": "99"
-    }
-    test_params = {
-        "serviceId": "99",
-        "position": {
-            "latitude": 42.0105286,
-            "longitude": -87.6926257
-        }
-    }
-    error = {
-        "errors": [
-            {
-                "code": "FC_901_ValidationFailed",
-                "message": ""
-                           "/position should be object, "
-                           "/vaccine should be object, "
-                           "/appointmentAvailability should be object, "
-                           "/radius should be number, "
-                           "/size should be number, "
-            }
-        ]
-    }
+    result_x_path = "/html/body/div[2]/div/div/section/section/section/section/section/p[1]"
+    search_btn_x_path = "/html/body/div[2]/div/div/section/section/section/section/div[1]/a/span"
+    result_list_x_path = "/html/body/div[2]/div/div/section/section/section/section/section"
+    result_item_x_path = "wag-store-info-{}"
+    driver.implicitly_wait(5)
 
-    error_2 = {
-        """'{"errors":[{"code":"FC_901_ValidationFailed","message":" should have required property \'position\',  should have required property \'serviceId\',  should match exactly one schema in oneOf,  should match some schema in anyOf, "}]}'"""
-    }
-    timeslot_url = "https://www.walgreens.com/hcschedulersvc/svc/v2/immunizationLocations/timeslots"
-    session = get_session(driver)
+    # zip_codes = get_zip_codes()
+    # /html/body/div[5]
+    zip_codes = ["02139", "60645"]
+    while True:
+        for zip_code in zip_codes:
+            search_box = WebDriverWait(driver, 10).until(
+                EC.visibility_of_element_located((By.ID, "search-address")))
+            while search_box.get_attribute("value") != zip_code:
+                search_box.clear()
+                search_box.send_keys(zip_code)
+            driver.implicitly_wait(2)
+            search_box.send_keys(Keys.ARROW_DOWN)
+            search_box.send_keys(Keys.ENTER)
+
+            # driver.find_element_by_xpath(search_btn_x_path).click()
+            # autocomplete = WebDriverWait(driver, 10).until(
+            #     EC.visibility_of_element_located((By.CLASS_NAME, "pac-item")))
+            # autocomplete.click()
+
+            # driver.find_element_by_xpath(search_btn_x_path).click()
+            # driver.execute_script("arguments[0].value = '{}';".format(zip_code), search_box)
+            # driver.find_element_by_xpath(search_btn_x_path).click()
+            # driver.implicitly_wait(5)
+            # results = driver.find_element_by_xpath(result_list_x_path)
+            # result_item = results.find_element_by_id(result_item_x_path.format(0)).text
+            # print result_item
+            time.sleep(10)
 
 
-    # resp = driver.request("POST", timeslot_url, data=params)
-    # session.headers.update({"content-type": "xyz"})
-    # resp2 = session.post(timeslot_url, data=params)
-    # session.headers.update({"content-type": "multipart/form-data"})
-    # resp3 = session.post(timeslot_url, data=params)
-    # print resp
-
-    # /html/body/div[7]
-    search_box = driver.find_element_by_id("search-address")
-    driver.execute_script("arguments[0].value = '60645';", search_box)
-    driver.find_element_by_xpath("/html/body/div[2]/div/div/section/section/section/section/div[1]/a/span").click()
-    print "waiting for search box to load"
-    # driver.implicitly_wait(15)
-    # print "finished waiting..."
-    # autocomplete = None
-    # while not autocomplete:
-    #     print "autocomplete not loaded"
-    # while search_box.text:
-    #     search_box.clear()
-        # search_box.send_keys("60645")
-        # driver.implicitly_wait(2)
-        # try:
-        #     autocomplete = driver.find_element_by_xpath("/html/body/div[5]")
-        #     print "autocomplete loaded"
-        #     print autocomplete.text
-        #     autocomplete.send_keys(Keys.RETURN)
-        # except NoSuchElementException as e:
-        #     print "autocomplete element not found"
-    result_x_path = "/html/body/div[2]/div/div/section/section/section/section/section/p[1]"\
-
-    p1 = driver.find_element_by_xpath(result_x_path).text
-    while p1 == loading_msg:
-        print "p1 still loading"
-        driver.implicitly_wait(2)
-        p1 = driver.find_element_by_xpath(result_x_path).text
-    print p1
-    x = 1
-
-    # driver.find_element_by_xpath("/html/body/div[2]/div/div/section/section/section/section/div[1]/a/span").click()
+        # for i in range(max_result_count):
+        #     results = driver.find_element_by_xpath(result_list_x_path)
+        #     print results
+        #     result_item = results.find_element_by_id(result_item_x_path.format(i)).text
+        #     print "--------------------------------------"
+        #     print result_item
 
 
-    # for query in lookup_zips:
-    #     print "Query: {}".format(query)
-    #     # driver.po
-    #     # search_box = driver.find_element_by_id("search-address")
-    #     # driver.implicitly_wait(driver_wait)
-    #     # search_box.clear()
-    #     # driver.implicitly_wait(driver_wait)
-    #     # search_box.send_keys(query)
-    #     # driver.find_element_by_xpath("/html/body/div[2]/div/div/section/section/section/section/div[1]/a/span").click()
-    #     # p1 = driver.find_element_by_xpath("/html/body/div[2]/div/div/section/section/section/section/section/p[1]").text
-    #     # while p1 == loading_msg:
-    #     #     driver.implicitly_wait(driver_wait)
-    #     #     p1 = driver.find_element_by_xpath("/html/body/div[2]/div/div/section/section/section/section/section/p[1]").text
-    #     # print p1
-    #     # # tweet(p1.text, p2.text)
-    #     # time.sleep(thread_wait)
-    #     # break
-    #     # print(query)
-    #     break
 
-
-def get_session(driver):
-    request_cookies_browser = driver.get_cookies()
-    session = requests.Session()
-    [session.cookies.set(c['name'], c['value']) for c in request_cookies_browser]
-    return session
+def get_zip_codes():
+    zip_codes = [
+        "60645",  # Chicago
+        "60202",  # Evanston
+        "60076",  # Skokie
+        "60007",  # Schaumburg
+        "60632",  # Cicero
+        "61016",  # Rockford
+        "62629",  # Springfield
+    ]
+    random.shuffle(zip_codes)
+    return zip_codes
 
 def tweet(p1, p2):
     print "Text inside of tweet(): {}, {}".format(p1, p2)
 
 
 def teardown(driver):
+    # todo: sign out of the account first
     driver.close()
     driver.quit()
 
@@ -223,12 +143,10 @@ def run():
         site_login(driver, login_again=False)
         patient_screening(driver)
         search(driver)
-
-        # Sleep for 5 minutes before repeating
-        time.sleep(5*60)
         teardown(driver)
-        break
 
+        # Sleep for 30 minutes before repeating
+        time.sleep(30*60)
 
 if __name__ == '__main__':
     run()
