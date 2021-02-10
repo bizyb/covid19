@@ -216,6 +216,7 @@ def teardown(driver):
 
 def run():
     while True:
+        print "Time now: {}    Driver starting...".format(time.time())
         driver = setup()
         site_login(driver, login_again=False)
         patient_screening_v2(driver)
@@ -223,7 +224,7 @@ def run():
         teardown(driver)
 
         # Sleep for 15 minutes before repeating
-        print "Sleeping..."
+        print "Time now: {}    Sleeping...".format(time.time())
         time.sleep(15 * 60)
 
 
