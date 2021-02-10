@@ -4,6 +4,7 @@ import random
 import time
 import re
 import os
+
 from selenium import webdriver
 from pymongo import MongoClient
 from bs4 import BeautifulSoup as BSoup
@@ -102,12 +103,7 @@ def parse_result(html, metro):
 
 
 def search(driver):
-    # result_x_path = "/html/body/div[2]/div/div/section/section/section/section/section/p[1]"
-    # search_btn_x_path = "/html/body/div[2]/div/div/section/section/section/section/div[1]/a/span"
-    result_list_x_path = "/html/body/div[2]/div/div/section/section/section/section/section"
-    result_item_id = "wag-store-info-{}"
     driver.implicitly_wait(5)
-
     zip_codes = get_zip_codes()
     num_attempts = 3
     for zip_code in zip_codes:
@@ -123,53 +119,7 @@ def search(driver):
             search_box.send_keys(Keys.ENTER)
             time.sleep(10)
             parse_result(driver.page_source, zip_code.get("metro"))
-            # for j in range(max_results):
-            #     try:
-            #         address_selector = "#wag-store-info-0 > div > section.pull-left.address-wrapper"
-            #         num_slots_selector = "#wag-store-info-0 > div > div.main-content.inner.active > p"
-                    # print "DEBUG 0"
-                    # address = driver.find_element_by_xpath(result_list_x_path)\
-                    #     .find_element_by_id(result_item_id.format(j))\
-                    #     .find_element_by_css_selector(address_selector).text
-                    # print "DEBUG 1"
-                    # num_slots = driver.find_element_by_xpath(result_list_x_path)\
-                    #     .find_element_by_id(result_item_id.format(j))\
-                    #     .find_element_by_css_selector(num_slots_selector).text
-
-
-                    # print "DEBUG 0"
-                    # time.sleep(5)
-                    # results = WebDriverWait(driver, 10).until(
-                    #     EC.visibility_of_element_located((By.XPATH, result_list_x_path)))
-                    #
-                    # # results = driver.find_element_by_xpath(result_list_x_path)
-                    # print "DEBUG 1"
-                    # print "xpath: ", result_item_id.format(j)
-                    # with open("walgreens-{}-{}.html".format(i, j), "w") as out:
-                    #     out.write(driver.page_source.encode("utf-8"))
-                    # item = WebDriverWait(results, 3).until(
-                    #     EC.visibility_of_element_located((By.ID, result_item_id.format(j))))
-                    # time.sleep(5)
-                    # item = results.find_element_by_id(result_item_id.format(j))
-                    # print "DEBUG 2"
-                    # address = WebDriverWait(item, 3).until(
-                    #     EC.visibility_of_element_located((By.CSS_SELECTOR, address_selector)))
-                    # # address = item.find_element_by_css_selector("#wag-store-info-0 > div > section.pull-left.address-wrapper").text
-                    # print "DEBUG 3"
-                    # num_slots = WebDriverWait(item, 3).until(
-                    #     EC.visibility_of_element_located((By.CSS_SELECTOR, num_slots_selector)))
-                    # # num_slots = item.find_element_by_css_selector("#wag-store-info-0 > div > div.main-content.inner.active > p").text
-                    #
-                    # print "Address: ", address.text
-                    # print "Num Slots: ", num_slots.text
-                    # save(address.text, num_slots.text, zip_code.get("metro"))
-                # except Exception as e:
-                #     # print "Exception caught... ", e.message
-                #     # print e
-                #     break
-
-            # Sleep for a minute before looking up another zipcode
-            # time.sleep(60)
+            time.sleep(60)
 
 
 def save(record):
@@ -182,47 +132,6 @@ def save(record):
         print "Record saved"
     else:
         print "Duplicate record. Not saving"
-    # """Structure the parsed text and save it to the database"""
-    # lines = address.split('\n')
-    # if "available" in num_slots:
-    #     city = None
-    #     store_address = None
-    #     num_slots = None
-    #     phone_number = 0
-    #     store_address_idx = 0
-    #     phone_idx = 2
-    #     city_idx = 1
-    #     num_slots = num_slots.split(" ")[0]
-    #     day_available = num_slots.split(" ")[-1]
-    #     if phone_idx < len(lines):
-    #         phone_number = lines[phone_idx]
-    #     if city_idx < len(lines):
-    #         city = lines[city_idx]
-    #     if store_address_idx < len(lines):
-    #         store_address = lines[store_address_idx]
-    #     record = {}
-    #     if city:
-    #         record["city"] = city
-    #     if store_address:
-    #         record["store_address"] = store_address
-    #     if num_slots:
-    #         record["num_slots"] = num_slots
-    #     if day_available:
-    #         record["day_available"] = day_available
-    #     if phone_number:
-    #         record["phone_number"] = phone_number
-    #     if record.get("num_slots"):
-    #         record["created"] = datetime.datetime.utcnow()
-    #         record["tweeted"] = False
-    #         record["provider"] = "Walgreens"
-    #         record["metro"] = metro
-    #         if is_new_record(record):
-    #             db.insert_one(record)
-    #             print "New record: ", record
-    #         else:
-    #             print "Duplicate record. Not saving"
-    # else:
-    #     print "Timeslot availability unknown"
 
 
 def is_new_record(record):
@@ -269,11 +178,11 @@ def get_zip_codes():
         # },
         {
             "zipcode": "90037",
-            "metro":  "Los Angeles, CA",
+            "metro": "Los Angeles, CA",
         },
         {
             "zipcode": "77010",
-            "metro":  "Houston, TX",
+            "metro": "Houston, TX",
         },
         # {
         #     "zipcode": "85018",
@@ -288,12 +197,12 @@ def get_zip_codes():
         #     "metro":  "Miami, FL",
         # }
     ]
-    # random.shuffle(zip_codes)
-    # return zip_codes
-    return [{
-               "zipcode": "02114",
-               "metro": "Boston"
-           }]
+    random.shuffle(zip_codes)
+    return zip_codes
+    # return [{
+    #            "zipcode": "02114",
+    #            "metro": "Boston"
+    #        }]
 
 
 def teardown(driver):
@@ -314,7 +223,7 @@ def run():
         teardown(driver)
 
         # Sleep for 30 minutes before repeating
-        time.sleep(3 * 60)
+        time.sleep(30 * 60)
 
 
 if __name__ == '__main__':
