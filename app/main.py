@@ -21,8 +21,9 @@ path_to_webdriver = "driver/chromedriver_mac64"
 os.chmod(path_to_webdriver, 0755)
 
 login_url = "https://www.walgreens.com/login.jsp"
-screening_url = "https://www.walgreens.com/findcare/vaccination/covid-19/appointment/screening"
-timeslot_url = "https://www.walgreens.com/hcschedulersvc/svc/v2/immunizationLocations/timeslots"
+# screening_url = "https://www.walgreens.com/findcare/vaccination/covid-19/appointment/screening"
+# timeslot_url = "https://www.walgreens.com/hcschedulersvc/svc/v2/immunizationLocations/timeslots"
+screening_url = "https://www.walgreens.com/findcare/vaccination/covid-19/location-screening"
 
 data = None
 with open("zips_by_town.json", "r") as f:
@@ -40,6 +41,80 @@ def site_login(driver, login_again=False):
     driver.find_element_by_id("user_password").send_keys("moon-age-dream-22")
     driver.find_element_by_id("submit_btn").click()
 
+
+# def search_box_action(driver, selector, input_text):
+#
+#     search_box = driver.find_element_by_id()
+#     while search_box.get_attribute("value") != input_text:
+#         search_box.clear()
+#         search_box.send_keys(input_text)
+#     driver.implicitly_wait(2)
+#     search_box.send_keys(Keys.ARROW_DOWN)
+#     search_box.send_keys(Keys.ENTER)
+#     driver.find_element_by_xpath("/html/body/div[2]/div/div/section/section/section/section/section/section[1]/div/span/button").click()
+#     driver.implicitly_wait(5)
+
+
+def patient_screening_v2(driver):
+    driver.get(screening_url)
+    site_login(driver, login_again=True)
+    driver.implicitly_wait(5)
+    input_text = 60604
+
+    # Input zip code to bring up questionnaire
+    # search_box_selector = "inputLocation"
+    search_box = driver.find_element_by_id("inputLocation")
+    if search_box.get_attribute("value") != input_text:
+        search_box.clear()
+        search_box.send_keys(input_text)
+    driver.implicitly_wait(2)
+    search_box.send_keys(Keys.ARROW_DOWN)
+    search_box.send_keys(Keys.ENTER)
+    driver.find_element_by_xpath("/html/body/div[2]/div/div/section/section/section/section/section/section[1]/div/span/button").click()
+    driver.implicitly_wait(5)
+
+    # search_box_action(driver, search_box_selector, 60604)
+    driver.find_element_by_xpath("/html/body/div[2]/div/div/section/section/section/section/section/section[1]/div/span/button").click()
+    driver.implicitly_wait(5)
+
+    # Select age criteria
+    driver.find_element_by_xpath("/html/body/div[2]/div/div/section/section/section/section/section[2]/section/section/section[3]/div/form/div[2]/div/div[1]/div/div/div[2]/fieldset/div[2]/label").click()
+
+    # Agree to terms
+    driver.find_element_by_xpath("/html/body/div[2]/div/div/section/section/section/section/section[2]/section/section/section[5]/ul/fieldset/li").click()
+
+    # Continue button
+    driver.find_element_by_xpath("/html/body/div[2]/div/div/section/section/section/section/section[2]/section/section/section[3]/div/form/div[2]/div/div[2]").click()
+
+    driver.implicitly_wait(10)
+
+    # Q1: Answer No
+    driver.find_element_by_xpath("/html/body/div[2]/div/div/section/section/section/div/div/div/div[3]/div/form/div[2]/div/div[2]/div[1]/div/div[2]/fieldset/div[2]/label").click()
+
+    # Q2: Answer No
+    driver.find_element_by_xpath("/html/body/div[2]/div/div/section/section/section/div/div/div/div[3]/div/form/div[2]/div/div[2]/div[2]/div/div[2]/fieldset/div[2]/label").click()
+
+    # Q3: Answer No
+    driver.find_element_by_xpath("/html/body/div[2]/div/div/section/section/section/div/div/div/div[3]/div/form/div[2]/div/div[2]/div[3]/div/div[2]/fieldset/div[2]/label").click()
+
+    # Q4: Answer No
+    driver.find_element_by_xpath("/html/body/div[2]/div/div/section/section/section/div/div/div/div[3]/div/form/div[2]/div/div[2]/div[4]/div/div[2]/fieldset/div[2]/label").click()
+
+    # Click Next
+    driver.find_element_by_xpath("/html/body/div[2]/div/div/section/section/section/div/div/div/div[3]/div/form/div[2]/div/div[3]/input").click()
+
+    driver.implicitly_wait(5)
+
+    # Proceed to the scheduler
+    driver.find_element_by_xpath("/html/body/div[2]/div/div/section/section/section/div/div/div[3]/div/a").click()
+
+    driver.implicitly_wait(5)
+
+    # Select First and Second Dose
+    driver.find_element_by_xpath("/html/body/div[2]/div/div/section/section/section/section[1]/section[3]/section/section[2]/form/section[7]/section[1]/div").click()
+
+    # Click on Schedule Now
+    driver.find_element_by_xpath("/html/body/div[2]/div/div/section/section/section/section[2]/section/span/button").click()
 
 def patient_screening(driver):
     driver.get(screening_url)
@@ -102,6 +177,9 @@ def parse_result(html, metro):
                 print e
 
 
+def search_v2(driver, zip_code):
+    parse_result(driver.page_source, zip_code.get("metro"))
+
 def search(driver):
     driver.implicitly_wait(5)
     zip_codes = get_zip_codes()
@@ -147,15 +225,15 @@ def is_new_record(record):
 
 
 def get_zip_codes():
-    zip_codes = [
-        {
-            "zipcode": "60604",
-            "metro": "Chicago"
-        },
-        {
-            "zipcode": "02114",
-            "metro": "Boston"
-        },
+    # zip_codes = [
+    #     {
+    #         "zipcode": "60604",
+    #         "metro": "Chicago"
+    #     },
+        # {
+        #     "zipcode": "02114",
+        #     "metro": "Boston"
+        # },
         # {
         #     "zipcode": "10460",
         #     "metro":  "NYC/Bronx",
@@ -176,14 +254,14 @@ def get_zip_codes():
         #     "zipcode": "10310",
         #     "metro":  "NYC/Staten Island",
         # },
-        {
-            "zipcode": "90037",
-            "metro": "Los Angeles, CA",
-        },
-        {
-            "zipcode": "77010",
-            "metro": "Houston, TX",
-        },
+        # {
+        #     "zipcode": "90037",
+        #     "metro": "Los Angeles, CA",
+        # },
+        # {
+        #     "zipcode": "77010",
+        #     "metro": "Houston, TX",
+        # },
         # {
         #     "zipcode": "85018",
         #     "metro":  "Phoenix, AZ",
@@ -196,13 +274,13 @@ def get_zip_codes():
         #     "zipcode": "33125",
         #     "metro":  "Miami, FL",
         # }
-    ]
-    random.shuffle(zip_codes)
-    return zip_codes
-    # return [{
-    #            "zipcode": "02114",
-    #            "metro": "Boston"
-    #        }]
+    # ]
+    # random.shuffle(zip_codes)
+    # return zip_codes
+    return [{
+               "zipcode": "60604",
+               "metro": "Chicago"
+           }]
 
 
 def teardown(driver):
@@ -218,12 +296,13 @@ def run():
     while True:
         driver = setup()
         site_login(driver, login_again=False)
-        patient_screening(driver)
-        search(driver)
+        patient_screening_v2(driver)
+        search_v2(driver, get_zip_codes())
         teardown(driver)
 
-        # Sleep for 30 minutes before repeating
-        time.sleep(30 * 60)
+        # Sleep for 15 minutes before repeating
+        print "Sleeping..."
+        time.sleep(15 * 60)
 
 
 if __name__ == '__main__':
