@@ -7,6 +7,7 @@ db = db_client["db"]
 collection = db["timeslots"]
 registration_link = "https://www.walgreens.com/findcare/vaccination/covid-19/appointment"
 
+
 def tweet():
     # Authenticate to Twitter
     auth = tweepy.OAuthHandler("camlOUeYcz8jJ1rZgUO6i9IGt", "wJzQOX3ozwPuSjI80OGyLATuh1GDBTX1fzMzIjhTOuUBHplSU3")
@@ -16,12 +17,13 @@ def tweet():
     while True:
         cursor = collection.find({"tweeted": True})
         for c in cursor:
-            status = """{},{} - {}: {} slots for {}\n\nRegister here: {}""".format(
+            status = """{},{} - {}: {} slots for {}\nPhone: {}\n\nRegister here: {}""".format(
                 c.get("city"),
                 c.get("state"),
                 c.get("provider"),
                 c.get("num_slots"),
                 c.get("day_available"),
+                c.get("phone_number"),
                 registration_link
             )
             api.update_status(status)
