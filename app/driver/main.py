@@ -10,6 +10,7 @@ from pymongo import MongoClient
 from bs4 import BeautifulSoup as BSoup
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
@@ -17,39 +18,68 @@ db_client = MongoClient(port=27017)
 db = db_client["db"]
 collection = db["timeslots"]
 
-path_to_webdriver = "driver/chromedriver_mac64"
-os.chmod(path_to_webdriver, 0755)
 
 login_url = "https://www.walgreens.com/login.jsp"
 screening_url = "https://www.walgreens.com/findcare/vaccination/covid-19/location-screening"
 
-data = None
-with open("zips_by_town.json", "r") as f:
-    data = json.load(f)
+
+def get_chrome_options():
+    """Sets chrome options for Selenium.
+    Chrome options for headless browser is enabled.
+    """
+    chrome_options = Options()
+    chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_prefs = {}
+    chrome_options.experimental_options["prefs"] = chrome_prefs
+    chrome_prefs["profile.default_content_settings"] = {"images": 2}
+    return chrome_options
 
 
 def setup():
-    return webdriver.Chrome(path_to_webdriver)
+    options = Options()
+    options.headless = False
+    return webdriver.Chrome(chrome_options=get_chrome_options())
+    # return webdriver.Chrome(path_to_webdriver, chrome_options=options)
 
 
 def site_login(driver, login_again=False):
+    print("Logging in")
     if not login_again:
         driver.get(login_url)
     driver.find_element_by_id("user_name").send_keys("bizm2021@gmail.com")
     driver.find_element_by_id("user_password").send_keys("moon-age-dream-22")
     driver.implicitly_wait(5)
-    num_attempts = 3
+    num_attempts = 5
     for i in range(num_attempts):
         try:
             driver.find_element_by_id("submit_btn").click()
+            break
         except Exception as e:
             pass
 
 
+def drive_with_retries(driver, xpath):
+    num_attempts = 5
+    for i in range(num_attempts):
+        try:
+            driver.find_element_by_xpath(xpath).click()
+            break
+        except Exception as e:
+            print(e, "Sleeping...")
+            time.sleep(5)
+
+
 def patient_screening_v2(driver):
+    print("Patient Screening")
     driver.get(screening_url)
-    site_login(driver, login_again=True)
-    driver.implicitly_wait(5)
+    try:
+        site_login(driver, login_again=True)
+    except Exception as e:
+        pass
+    print("Login success. Sleeping...")
+    time.sleep(15)
     input_text = 60604
 
     # Input zip code to bring up questionnaire
@@ -63,66 +93,69 @@ def patient_screening_v2(driver):
         driver.implicitly_wait(2)
         search_box.send_keys(Keys.ARROW_DOWN)
         search_box.send_keys(Keys.ENTER)
-    driver.find_element_by_xpath(
-        "/html/body/div[2]/div/div/section/section/section/section/section/section[1]/div/span/button").click()
-    driver.implicitly_wait(5)
+    print("Zip code entered")
+    drive_with_retries(driver,
+                       "/html/body/div[2]/div/div/section/section/section/section/section/section[1]/div/span/button")
+    print("Waiting for eligibility result. Sleeping..")
+    time.sleep(5)
 
-    # search_box_action(driver, search_box_selector, 60604)
-    driver.find_element_by_xpath(
-        "/html/body/div[2]/div/div/section/section/section/section/section/section[1]/div/span/button").click()
-    driver.implicitly_wait(5)
+    drive_with_retries(driver,
+                       "/html/body/div[2]/div/div/section/section/section/section/section/section[1]/div/span/button")
+    print("Sleeping...")
+    time.sleep(5)
 
     # Select age criteria
-    driver.find_element_by_xpath(
-        "/html/body/div[2]/div/div/section/section/section/section/section[2]/section/section/section[3]/div/form/div[2]/div/div[1]/div/div/div[2]/fieldset/div[2]/label").click()
+    drive_with_retries(driver,
+                       "/html/body/div[2]/div/div/section/section/section/section/section[2]/section/section/section[3]/div/form/div[2]/div/div[1]/div/div/div[2]/fieldset/div[2]/label")
 
     # Agree to terms
-    driver.find_element_by_xpath(
-        "/html/body/div[2]/div/div/section/section/section/section/section[2]/section/section/section[5]/ul/fieldset/li").click()
+    drive_with_retries(driver,
+                       "/html/body/div[2]/div/div/section/section/section/section/section[2]/section/section/section[5]/ul/fieldset/li")
 
     # Continue button
-    driver.find_element_by_xpath(
-        "/html/body/div[2]/div/div/section/section/section/section/section[2]/section/section/section[3]/div/form/div[2]/div/div[2]").click()
-
-    driver.implicitly_wait(10)
+    drive_with_retries(driver,
+                       "/html/body/div[2]/div/div/section/section/section/section/section[2]/section/section/section[3]/div/form/div[2]/div/div[2]")
+    print("Loading questionnaire. Sleeping...")
+    time.sleep(10)
 
     # Q1: Answer No
-    driver.find_element_by_xpath(
-        "/html/body/div[2]/div/div/section/section/section/div/div/div/div[3]/div/form/div[2]/div/div[2]/div[1]/div/div[2]/fieldset/div[2]/label").click()
+    drive_with_retries(driver,
+                       "/html/body/div[2]/div/div/section/section/section/div/div/div/div[3]/div/form/div[2]/div/div[2]/div[1]/div/div[2]/fieldset/div[2]/label")
 
     # Q2: Answer No
-    driver.find_element_by_xpath(
-        "/html/body/div[2]/div/div/section/section/section/div/div/div/div[3]/div/form/div[2]/div/div[2]/div[2]/div/div[2]/fieldset/div[2]/label").click()
+    drive_with_retries(driver,
+                       "/html/body/div[2]/div/div/section/section/section/div/div/div/div[3]/div/form/div[2]/div/div[2]/div[2]/div/div[2]/fieldset/div[2]/label")
 
     # Q3: Answer No
-    driver.find_element_by_xpath(
-        "/html/body/div[2]/div/div/section/section/section/div/div/div/div[3]/div/form/div[2]/div/div[2]/div[3]/div/div[2]/fieldset/div[2]/label").click()
+    drive_with_retries(driver,
+                       "/html/body/div[2]/div/div/section/section/section/div/div/div/div[3]/div/form/div[2]/div/div[2]/div[3]/div/div[2]/fieldset/div[2]/label")
 
     # Q4: Answer No
-    driver.find_element_by_xpath(
-        "/html/body/div[2]/div/div/section/section/section/div/div/div/div[3]/div/form/div[2]/div/div[2]/div[4]/div/div[2]/fieldset/div[2]/label").click()
+    drive_with_retries(driver,
+                       "/html/body/div[2]/div/div/section/section/section/div/div/div/div[3]/div/form/div[2]/div/div[2]/div[4]/div/div[2]/fieldset/div[2]/label")
 
     # Click Next
-    driver.find_element_by_xpath(
-        "/html/body/div[2]/div/div/section/section/section/div/div/div/div[3]/div/form/div[2]/div/div[3]/input").click()
-
-    driver.implicitly_wait(5)
+    drive_with_retries(driver,
+                       "/html/body/div[2]/div/div/section/section/section/div/div/div/div[3]/div/form/div[2]/div/div[3]/input")
+    print("Questionnaire submitted. Sleeping...")
+    time.sleep(5)
 
     # Proceed to the scheduler
-    driver.find_element_by_xpath("/html/body/div[2]/div/div/section/section/section/div/div/div[3]/div/a").click()
-
-    driver.implicitly_wait(5)
+    drive_with_retries(driver, "/html/body/div[2]/div/div/section/section/section/div/div/div[3]/div/a")
+    print("Proceeding to dosage selection page. Sleeping...")
+    time.sleep(5)
 
     # Select First and Second Dose
-    driver.find_element_by_xpath(
-        "/html/body/div[2]/div/div/section/section/section/section[1]/section[3]/section/section[2]/form/section[7]/section[1]/div").click()
+    drive_with_retries(driver,
+                       "/html/body/div[2]/div/div/section/section/section/section[1]/section[3]/section/section[2]/form/section[7]/section[1]/div")
 
     # Click on Schedule Now
-    driver.find_element_by_xpath(
-        "/html/body/div[2]/div/div/section/section/section/section[2]/section/span/button").click()
+    drive_with_retries(driver, "/html/body/div[2]/div/div/section/section/section/section[2]/section/span/button")
+    print("Loading time slot result page...")
 
 
 def parse_result(html, metro):
+    print("Parsing result page")
     soup = BSoup(html, 'lxml')
     accordion = soup.select("#wag-body-main-container > section > section > section")[0]
     results = accordion.find_all('section', id=re.compile("wag-store-info-"))
@@ -147,15 +180,16 @@ def parse_result(html, metro):
                     metro=metro
                 ))
             except Exception as e:
-                print e
+                print(e)
 
 
 def search_v2(driver, zip_code):
+    print("Loading result page")
     parse_result(driver.page_source, zip_code.get("metro"))
 
 
 def search(driver):
-    driver.implicitly_wait(5)
+    time.sleep(5)
     zip_codes = get_zip_codes()
     num_attempts = 3
     for zip_code in zip_codes:
@@ -175,15 +209,15 @@ def search(driver):
 
 
 def save(record):
-    print "Record to save: ", record
+    print("Saving record: ", record)
     if is_new_record(record):
         record["created"] = datetime.datetime.utcnow()
         record["tweeted"] = False
         record["provider"] = "Walgreens"
         collection.insert_one(record)
-        print "Record saved"
+        print("Record saved")
     else:
-        print "Duplicate record. Not saving"
+        print("Duplicate record. Not saving")
 
 
 def is_new_record(record):
@@ -206,6 +240,7 @@ def get_zip_codes():
 
 
 def teardown(driver):
+    print("Tearing down driver")
     # Sign out
     driver.find_element_by_xpath("/html/body/header/div[1]/nav/div/div/div[4]/div").click()
     driver.find_element_by_xpath("/html/body/header/div[1]/nav/div/div/div[4]/div/ul/li[10]").click()
@@ -216,7 +251,7 @@ def teardown(driver):
 
 def run():
     while True:
-        print "Time now: {}    Driver starting...".format(time.time())
+        print("Time now: {}    Driver starting...".format(time.time()))
         driver = setup()
         site_login(driver, login_again=False)
         patient_screening_v2(driver)
@@ -224,7 +259,7 @@ def run():
         teardown(driver)
 
         # Sleep for 15 minutes before repeating
-        print "Time now: {}    Sleeping...".format(time.time())
+        print("Time now: {}    Sleeping...".format(time.time()))
         time.sleep(15 * 60)
 
 

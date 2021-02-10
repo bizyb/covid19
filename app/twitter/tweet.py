@@ -15,7 +15,8 @@ def tweet():
                           "5CFFALuJjFfeX2ut9QsbkehZy8hX3EQiBYFfZF6tuR6HG")
     api = tweepy.API(auth)
     while True:
-        cursor = collection.find({"tweeted": True})
+        print("Tweetpy checking for new records...")
+        cursor = collection.find({"tweeted": False})
         for c in cursor:
             status = """{},{} - {}: {} slots for {}\nPhone: {}\n\nRegister here: {}""".format(
                 c.get("city"),
@@ -31,6 +32,7 @@ def tweet():
             collection.update_one({"_id": c.get('_id')}, {"$set": {"tweeted": True}})
 
         # Sleep ofr 5 minutes
+        print("Tweetpy is entering sleep...")
         time.sleep(5 * 60)
 
 
